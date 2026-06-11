@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -e
+shopt -s nullglob
+
+for file in *.cpp; do
+    filename="${file##*/}"
+    number="${filename%.cpp}"
+    if ! [[ "$number" =~ ^[0-9]+$ ]]; then
+        continue
+    fi
+    range_start=$(( ( (number - 1) / 100 ) * 100 + 1 ))
+    range_end=$(( range_start + 99 ))
+    target_dir=$(printf "%04d-%04d" "$range_start" "$range_end")
+    target_file="$target_dir/$filename"
+    if [[ -f "$target_file" ]]; then
+        continue
+    fi
+    mkdir -p "$target_dir"
+    if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+        git mv "$file" "$target_file"
+    else
+        mv "$file" "$target_file"
+        git add "$target_file"
+        git rm --cached "$file" >/dev/null 2>&1 || true
+    fi
+done
